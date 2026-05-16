@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The I Ching Reflection & Guidance Tool — v1.4.3</title>
+<style>
+:root{
+--bg:#efe6d4;--panel:#f8f2e7;--ink:#2d2925;--soft:#665c50;--accent:#8b3131;--border:#d7cab4;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(to bottom,#f1e9d8,#e9dec8);color:var(--ink);line-height:1.7}
+header{padding:2rem 1rem;text-align:center;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.2);backdrop-filter:blur(6px)}
+.seal{width:90px;height:90px;border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:2.7rem;color:var(--accent);font-family:Georgia,serif;background:rgba(139,49,49,0.05)}
+h1{margin:0;font-size:2.55rem;font-family:Georgia,serif;font-weight:500}
+.subtitle{margin-top:.5rem;color:var(--soft)}
+main{width:min(950px,92%);margin:2rem auto 5rem}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:24px;padding:2rem;margin-bottom:2rem;box-shadow:0 10px 30px rgba(0,0,0,.04)}
+button{border:none;background:var(--accent);color:white;padding:.95rem 1.5rem;border-radius:999px;cursor:pointer;font-size:1rem;transition:.25s ease}
+button:hover{transform:translateY(-1px);opacity:.92}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.secondary{background:#d9cdb8;color:var(--ink)}
+.button-row{display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;margin-top:1.5rem}
+textarea{width:100%;min-height:130px;border-radius:18px;border:1px solid var(--border);padding:1rem;font-size:1rem;background:white;resize:vertical}
+.hidden{display:none!important}
+.section-title{font-size:2rem;font-family:Georgia,serif;margin-bottom:1rem}
+.hexagram{width:260px;margin:2rem auto}
+.line{height:18px;margin:12px 0;position:relative;opacity:0;transform:translateY(8px);animation:reveal .7s forwards}
+.yang{background:var(--ink);border-radius:10px}
+.yin{display:flex;justify-content:space-between}
+.yin span{width:46%;background:var(--ink);border-radius:10px}
+.marker{position:absolute;right:-24px;top:-4px;color:var(--accent);font-size:1.1rem}
+@keyframes reveal{to{opacity:1;transform:translateY(0)}}
+.reading-section{margin-bottom:2rem}
+.reading-section h3{font-family:Georgia,serif;font-size:1.5rem;margin-bottom:.4rem}
+.expand-btn{background:none;border:none;color:var(--accent);padding:0;cursor:pointer;font-size:.95rem}
+.expandable{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.learn-item{padding:1rem 0;border-top:1px solid var(--border)}
+.learn-item h3{margin-bottom:.4rem;font-family:Georgia,serif}
+footer{text-align:center;padding:2rem;color:var(--soft)}
+.print-meta{display:none}
+@media print{
+.print-meta{display:block;text-align:center;margin-bottom:1.2rem;color:#5f554a;font-size:.9rem}
+.reading-section{break-inside:avoid;margin-bottom:1.4rem;padding-bottom:.6rem;border-bottom:1px solid #e3d8c7}
+.reading-section h3{font-size:1.25rem;margin-bottom:.2rem}
+textarea{border:1px solid #ddd;min-height:95px}
+.hexagram{width:210px;margin:1rem auto}
+.section-title{font-size:1.65rem;text-align:center}
+}
+@media print{
+header, footer, #welcome, #questionPanel, #castingPanel, #learnPanel, button, .expand-btn{display:none!important}
+body{background:white}
+main{width:100%;margin:0}
+.panel{box-shadow:none;border:none;padding:0}
+.hidden{display:block!important}
+}
+@media(max-width:700px){.panel{padding:1.4rem}h1{font-size:2.1rem}.hexagram{width:220px}}
+</style>
+</head>
+<body>
+<header>
+<div class="seal">易</div>
+<h1>The I Ching Reflection & Guidance Tool</h1>
+<div class="subtitle">A reflective companion for insight, change, and self-understanding.</div>
+</header>
+<main>
+<section class="panel" id="welcome">
+<div class="section-title">Welcome</div>
+<p>The I Ching invites reflection through symbols of change, balance, movement, and awareness. This tool is designed to support thoughtful contemplation rather than prediction.</p>
+<div class="button-row">
+<button onclick="startReading(false)">Quick Reading</button>
+<button class="secondary" onclick="startReading(true)">Guided Reading</button>
+<button class="secondary" onclick="toggleLearn()">Learn</button>
+</div>
+</section>
+
+<section class="panel hidden" id="questionPanel">
+<div class="section-title">Your Reflection</div>
+<p>What situation, concern, or decision would you like to reflect upon?</p>
+<textarea id="question" placeholder="Write your question or intention here..."></textarea>
+<div class="button-row"><button id="castBtn" onclick="castHexagram()">Cast Hexagram</button></div>
+</section>
+
+<section class="panel hidden" id="castingPanel">
+<div class="section-title">Casting</div>
+<p id="castingMessage">Allow the lines to emerge gradually...</p>
+<div class="hexagram" id="castingHexagram"></div>
+</section>
+
+<section class="panel hidden" id="resultPanel">
+<div class="print-meta">The I Ching Reflection & Guidance Tool — Reflective Workbook Reading</div>
+<div class="section-title" id="hexTitle"></div>
+<div id="resultHexagram" class="hexagram"></div>
+<div class="reading-section"><h3>Essence</h3><p id="essence"></p></div>
+<div class="reading-section"><h3>Present Situation</h3><p id="situation"></p></div>
+<div class="reading-section"><h3>Guidance</h3><p id="guidance"></p></div>
+<div class="reading-section"><h3>Reflection Questions</h3><ul id="reflectionQuestions"></ul></div>
+<div class="reading-section" id="changingLinesSection"><h3>Changing Lines</h3><div id="changingLines"></div></div>
+<div class="reading-section"><h3>Relating Hexagram</h3><p id="relating"></p></div>
+<div class="reading-section">
+<button class="expand-btn" onclick="toggleExpanded()">Explore More</button>
+<div id="expanded" class="expandable hidden"><p id="expandedText"></p></div>
+</div>
+<div class="reading-section"><h3>Journal Reflection</h3><textarea id="journal" placeholder="Write your reflections here..."></textarea></div>
+<div class="button-row">
+<button onclick="window.print()">Print Reading</button>
+<button class="secondary" onclick="newReading()">New Reading</button>
+</div>
+</section>
+
+<section class="panel hidden" id="learnPanel">
+<div class="section-title">Learn About the I Ching</div>
+<div class="learn-item"><h3>The Eight Trigrams</h3><p>Heaven represents creative force. Earth reflects receptivity and support. Thunder symbolises awakening and movement. Water represents emotional depth and uncertainty. Mountain reflects stillness and boundaries. Wind symbolises gradual influence. Fire reflects illumination and clarity. Lake symbolises openness and connection.</p></div>
+<div class="learn-item"><h3>Changing Lines</h3><p>Changing lines indicate movement and transformation within the situation. They reveal where energy is shifting rather than remaining fixed.</p></div>
+<div class="learn-item"><h3>Primary and Relating Hexagrams</h3><p>The primary hexagram reflects the present symbolic atmosphere. The relating hexagram shows how the situation may be moving or transforming through the changing lines.</p></div>
+<div class="button-row"><button class="secondary" onclick="toggleLearn()">Close</button></div>
+</section>
+</main>
+<footer>Created by Xavier Nathan · v1.4.3</footer>
+
+<script>
+let guided=false;
+let isCasting=false;
+
+const HEX_INFO = {
+1:["The Creative","Heaven above Heaven","Creative movement asks for clear direction, integrity, and disciplined action."],
+2:["The Receptive","Earth above Earth","Receptivity, patience, and grounded support may be the source of strength."],
+3:["Difficulty at the Beginning","Water above Thunder","New growth may be emerging through uncertainty; small steady steps matter."],
+4:["Youthful Folly","Mountain above Water","Learning is needed; humility and sincere questioning are more useful than pretending to know."],
+5:["Waiting","Water above Heaven","Patience is not inaction; it is readiness held with trust and awareness."],
+6:["Conflict","Heaven above Water","Tension asks for clarity, restraint, and honest examination of motives."],
+7:["The Army","Earth above Water","Discipline, organisation, and shared purpose are needed to manage complexity."],
+8:["Holding Together","Water above Earth","Connection strengthens when it is based on sincerity, trust, and mutual support."],
+9:["Small Taming","Wind above Heaven","Gentle restraint and small refinements may be more effective than force."],
+10:["Treading","Heaven above Lake","Move carefully and respectfully; awareness of boundaries protects progress."],
+11:["Peace","Earth above Heaven","Harmony becomes possible when inner and outer forces cooperate naturally."],
+12:["Standstill","Heaven above Earth","When movement is blocked, preserve integrity and avoid forcing false progress."],
+13:["Fellowship","Heaven above Fire","Shared purpose and honest connection can widen perspective."],
+14:["Great Possession","Fire above Heaven","Abundance requires generosity, clarity, and responsible stewardship."],
+15:["Modesty","Earth above Mountain","Quiet strength and humility create balance and trust."],
+16:["Enthusiasm","Thunder above Earth","Inspiration can gather energy when grounded in sincere purpose."],
+17:["Following","Lake above Thunder","Adaptability and willingness to listen may open the right path."],
+18:["Work on What Has Been Spoiled","Mountain above Wind","Old patterns may need careful repair before growth can continue."],
+19:["Approach","Earth above Lake","Something favourable may be drawing near; meet it with steadiness and care."],
+20:["Contemplation","Wind above Earth","Step back and observe; deeper understanding may arise through quiet attention."],
+21:["Biting Through","Fire above Thunder","A blockage may require clear, firm, and honest action."],
+22:["Grace","Mountain above Fire","Outer beauty is strongest when it expresses inner sincerity."],
+23:["Splitting Apart","Mountain above Earth","Something unstable may be falling away; preserve what is essential."],
+24:["Return","Earth above Thunder","Renewal begins through a quiet return to what is true and essential."],
+25:["Innocence","Heaven above Thunder","Natural sincerity protects action from manipulation or overthinking."],
+26:["Great Taming","Mountain above Heaven","Strong energy is best held, refined, and directed with wisdom."],
+27:["Nourishment","Mountain above Thunder","Consider what you feed in body, mind, speech, and relationships."],
+28:["Great Exceeding","Lake above Wind","Pressure may be high; strength is needed, but balance must be restored."],
+29:["The Abyss","Water above Water","Depth and uncertainty ask for courage, honesty, and careful movement."],
+30:["The Clinging","Fire above Fire","Clarity grows when awareness is sustained without attachment."],
+31:["Influence","Lake above Mountain","Gentle attraction and openness may create meaningful connection."],
+32:["Duration","Thunder above Wind","Lasting progress depends on steadiness, rhythm, and committed direction."],
+33:["Retreat","Heaven above Mountain","Stepping back may preserve strength and create wiser timing."],
+34:["Great Power","Thunder above Heaven","Power must be guided by responsibility, restraint, and clear intention."],
+35:["Progress","Fire above Earth","Clarity and recognition may grow through steady, visible development."],
+36:["Darkening of the Light","Earth above Fire","Protect inner clarity when outer circumstances are difficult or unclear."],
+37:["The Family","Wind above Fire","Relationships and roles need care, warmth, and clear responsibility."],
+38:["Opposition","Fire above Lake","Difference can reveal insight when approached without defensiveness."],
+39:["Obstruction","Water above Mountain","Difficulty may require patience, support, and a change in approach."],
+40:["Release","Thunder above Water","Tension may begin to loosen; forgiveness and movement become possible."],
+41:["Decrease","Mountain above Lake","Letting go may restore proportion and inner simplicity."],
+42:["Increase","Wind above Thunder","Growth is supported by generosity, responsiveness, and timely action."],
+43:["Breakthrough","Lake above Heaven","Truth may need to be expressed clearly without aggression."],
+44:["Coming to Meet","Heaven above Wind","A powerful influence appears; discernment is essential."],
+45:["Gathering Together","Lake above Earth","Shared focus and sincere community can strengthen purpose."],
+46:["Pushing Upward","Earth above Wind","Gradual effort, humility, and persistence support steady growth."],
+47:["Oppression","Lake above Water","Constraint may test inner truth; avoid losing heart."],
+48:["The Well","Water above Wind","A deeper source of nourishment or wisdom may need to be drawn upon."],
+49:["Revolution","Lake above Fire","Transformation becomes possible when timing and inner truth align."],
+50:["The Cauldron","Fire above Wind","Raw experience can be transformed into wisdom, nourishment, and culture."],
+51:["The Arousing","Thunder above Thunder","Shock awakens awareness; steadiness returns through presence."],
+52:["Keeping Still","Mountain above Mountain","Stillness, boundaries, and inner quiet may now be essential."],
+53:["Development","Wind above Mountain","Slow organic progress is favoured over haste."],
+54:["The Marrying Maiden","Thunder above Lake","Adaptation is needed where power or position feels unequal."],
+55:["Abundance","Thunder above Fire","A full moment requires clarity, generosity, and wise use of energy."],
+56:["The Wanderer","Fire above Mountain","When not fully settled, move with humility and awareness."],
+57:["The Gentle","Wind above Wind","Subtle influence works through patience, consistency, and quiet penetration."],
+58:["The Joyous","Lake above Lake","Open communication and shared joy can restore connection."],
+59:["Dispersion","Wind above Water","Dissolving rigidity may allow feeling, trust, or understanding to flow again."],
+60:["Limitation","Water above Lake","Healthy boundaries create form, rhythm, and sustainable freedom."],
+61:["Inner Truth","Wind above Lake","Sincerity and emotional honesty bring alignment and trust."],
+62:["Small Exceeding","Thunder above Mountain","Careful attention to small details is wiser than grand gestures."],
+63:["After Completion","Water above Fire","A completed phase still requires vigilance and balance."],
+64:["Before Completion","Fire above Water","The transition is not finished; careful awareness is needed before closure."]
+};
+
+// King Wen resolver key uses six binary lines bottom-to-top: 1 = yang, 0 = yin.
+const KING_WEN = {
+"111111":1,"000000":2,"100010":3,"010001":4,"111010":5,"010111":6,"010000":7,"000010":8,
+"111011":9,"110111":10,"111000":11,"000111":12,"101111":13,"111101":14,"001000":15,"000100":16,
+"100110":17,"011001":18,"110000":19,"000011":20,"100101":21,"101001":22,"000001":23,"100000":24,
+"100111":25,"111001":26,"100001":27,"011110":28,"010010":29,"101101":30,"001110":31,"011100":32,
+"001111":33,"111100":34,"000101":35,"101000":36,"101011":37,"110101":38,"001010":39,"010100":40,
+"110001":41,"100011":42,"111110":43,"011111":44,"000110":45,"011000":46,"010110":47,"011010":48,
+"101110":49,"011101":50,"100100":51,"001001":52,"001011":53,"110100":54,"101100":55,"001101":56,
+"011011":57,"110110":58,"010011":59,"110010":60,"110011":61,"001100":62,"101010":63,"010101":64
+};
+
+const FULL_ENTRIES = {
+1:{essence:"Creative movement asks for clear direction, integrity, and disciplined action.",situation:"Something may be ready to move forward, but it needs clear direction rather than force.",guidance:"Act with confidence, but let steadiness and integrity guide the pace.",questions:["Where is new energy trying to emerge?","What needs direction rather than pressure?","How can strength remain calm and useful?"],expanded:"The Creative reflects initiative, movement, and the wish to bring something into form. Its strength is clearest when action is guided by awareness rather than impatience."},
+2:{essence:"Receptivity, patience, and grounded support may be the source of strength.",situation:"This may be a time for patience, listening, and allowing things to settle before acting.",guidance:"Make space for what is unfolding. Support and steadiness may matter more than control.",questions:["What needs patience rather than pressure?","Where would listening help more than acting?","What kind of support is needed here?"],expanded:"The Receptive reflects the quiet strength of allowing, supporting, and holding steady. It reminds us that not all progress comes through pushing."},
+3:{essence:"New growth may be emerging through uncertainty; small steady steps matter.",situation:"Something may be beginning, but it could feel uncertain, awkward, or not yet fully formed.",guidance:"Take one manageable step at a time. Early difficulty does not mean the direction is wrong.",questions:["What is still taking shape?","What small step feels possible now?","Where am I expecting clarity too soon?"],expanded:"Difficulty at the Beginning reflects the confusion that often comes with new growth. It asks for patience, organisation, and trust in small beginnings."},
+4:{essence:"Learning is needed; humility and sincere questioning are more useful than pretending to know.",situation:"There may be something you do not yet fully understand, and that is part of the process.",guidance:"Approach the matter with curiosity rather than certainty. A sincere question may open more than a forced answer.",questions:["What am I still learning here?","Where might humility be helpful?","What question needs to be asked honestly?"],expanded:"Youthful Folly reflects the wisdom of being teachable. It does not criticise not knowing; it points to the value of learning sincerely."},
+5:{essence:"Patience is not inaction; it is readiness held with trust and awareness.",situation:"The next step may not be ready yet. Waiting carefully could be part of the answer.",guidance:"Stay prepared without forcing the timing. Let patience become active attention rather than frustration.",questions:["What am I waiting for?","How can I remain ready without pushing?","What would wise patience look like?"],expanded:"Waiting reflects the discipline of holding steady when events have not yet opened. It encourages trust, nourishment, and readiness."},
+6:{essence:"Tension asks for clarity, restraint, and honest examination of motives.",situation:"There may be tension, disagreement, or inner conflict that needs careful handling.",guidance:"Avoid feeding the conflict. Clarity, restraint, and honesty are more useful than winning.",questions:["What is the real source of the tension?","Where might I be reacting defensively?","What would de-escalation look like?"],expanded:"Conflict reflects a moment where opposing needs or views may be pulling against each other. It asks for truthfulness without aggression."},
+7:{essence:"Discipline, organisation, and shared purpose are needed to manage complexity.",situation:"The matter may need order, structure, or a clearer sense of responsibility.",guidance:"Gather yourself. Clear priorities and steady discipline can bring strength to complexity.",questions:["What needs organising?","Where is discipline required?","What shared purpose or inner purpose matters most?"],expanded:"The Army reflects organised strength. It does not glorify struggle; it points to discipline, responsibility, and coherent action."},
+8:{essence:"Connection strengthens when it is based on sincerity, trust, and mutual support.",situation:"Belonging, loyalty, or support may be important in this situation.",guidance:"Move towards sincere connection, but notice whether the bond feels healthy and mutual.",questions:["Where is genuine support available?","What kind of connection feels trustworthy?","Am I joining from sincerity or need?"],expanded:"Holding Together reflects the need for connection and shared trust. It asks us to notice where we belong, and why."},
+9:{essence:"Gentle restraint and small refinements may be more effective than force.",situation:"This may not be a time for major action. Small adjustments could matter more than dramatic change.",guidance:"Work gently with what can be improved now. Quiet influence may be enough.",questions:["What small change would help?","Where am I trying too hard?","What can be refined rather than forced?"],expanded:"Small Taming reflects the power of gentle restraint. It suggests that modest improvements can prepare the way for larger movement later."},
+10:{essence:"Move carefully and respectfully; awareness of boundaries protects progress.",situation:"There may be sensitivity around boundaries, conduct, or how a step is taken.",guidance:"Proceed carefully and respectfully. The way you move may matter as much as the outcome.",questions:["Where is careful conduct needed?","What boundary should be respected?","How can I move without creating unnecessary risk?"],expanded:"Treading reflects careful movement in a sensitive situation. It encourages respect, awareness, and grace under pressure."},
+11:{essence:"Harmony becomes possible when inner and outer forces cooperate naturally.",situation:"There may be room for ease, cooperation, or a more balanced exchange.",guidance:"Support what is already moving well. Do not disturb harmony by forcing more than is needed.",questions:["Where is cooperation possible?","What is already working quietly?","How can I support balance without controlling it?"],expanded:"Peace reflects a period where things can meet more naturally. It reminds us to protect harmony with humility and care."},
+12:{essence:"When movement is blocked, preserve integrity and avoid forcing false progress.",situation:"Something may feel blocked, distant, or unable to move in the usual way.",guidance:"Do not force progress where the way is closed. Preserve your integrity and wait for a clearer opening.",questions:["Where does movement feel blocked?","What should not be forced?","How can I stay true while waiting?"],expanded:"Standstill reflects a pause or blockage. It asks for patience, self-respect, and the ability to avoid false movement."},
+13:{essence:"Shared purpose and honest connection can widen perspective.",situation:"The issue may benefit from openness, shared purpose, or a wider view.",guidance:"Look for common ground without losing honesty. Connection works best when it is clear and sincere.",questions:["Who shares a genuine purpose here?","Where would openness help?","What view is wider than my own?"],expanded:"Fellowship reflects connection beyond narrow self-interest. It encourages openness, clarity, and shared human purpose."},
+14:{essence:"Abundance requires generosity, clarity, and responsible stewardship.",situation:"There may be resources, influence, or opportunity available, but they need to be handled wisely.",guidance:"Use what is available with care. Abundance becomes stronger when it is generous and well directed.",questions:["What resource or strength is present?","How can it be used responsibly?","Where might generosity be needed?"],expanded:"Great Possession reflects abundance, capability, or influence. It asks that strength be used with clarity rather than pride."},
+15:{essence:"Quiet strength and humility create balance and trust.",situation:"A modest, grounded approach may be more helpful than standing out or proving a point.",guidance:"Keep things simple and sincere. Quiet strength may carry more influence than display.",questions:["Where would humility help?","What can be simplified?","How can strength stay quiet and steady?"],expanded:"Modesty reflects balance, humility, and right proportion. It suggests that what is genuine does not need to announce itself loudly."},
+16:{essence:"Inspiration can gather energy when grounded in sincere purpose.",situation:"Enthusiasm or momentum may be building, but it needs grounding.",guidance:"Let inspiration move you, but keep it connected to purpose and reality.",questions:["What is stirring enthusiasm?","Is this energy grounded?","How can inspiration become useful action?"],expanded:"Enthusiasm reflects energy, motivation, and shared feeling. It is strongest when excitement is guided by sincerity."},
+17:{essence:"Adaptability and willingness to listen may open the right path.",situation:"The situation may ask for listening, adjustment, or willingness to follow what feels right.",guidance:"Stay responsive without losing yourself. Following wisely is different from drifting.",questions:["What am I being asked to listen to?","Where is adaptation needed?","Am I following sincerely or passively?"],expanded:"Following reflects responsiveness and trust in the direction of events. It asks for discernment as well as openness."},
+18:{essence:"Old patterns may need careful repair before growth can continue.",situation:"Something neglected, unresolved, or inherited may need attention before things can move freely.",guidance:"Approach the repair patiently. Honest care can restore what force cannot fix.",questions:["What needs repair or attention?","What old pattern is still influencing things?","What can be restored with care?"],expanded:"Work on What Has Been Spoiled reflects the need to repair what has gone out of balance. It encourages courage, patience, and practical honesty."},
+19:{essence:"Something favourable may be drawing near; meet it with steadiness and care.",situation:"A helpful opening or approach may be forming, but it still needs careful attention.",guidance:"Meet what is coming with steadiness. Encouragement is useful, but do not rush the process.",questions:["What is approaching?","How can I meet it wisely?","Where is care needed as things open?"],expanded:"Approach reflects nearness, encouragement, and the arrival of possibility. It asks for warmth joined with responsibility."},
+20:{essence:"Step back and observe; deeper understanding may arise through quiet attention.",situation:"It may be helpful to look at the situation from a little distance before responding.",guidance:"Observe carefully. What becomes visible through still attention may be more useful than immediate action.",questions:["What do I see when I step back?","What have I not yet noticed?","How might quiet observation change my response?"],expanded:"Contemplation reflects seeing more clearly through distance and attention. It asks for observation before judgement."},
+21:{essence:"A blockage may require clear, firm, and honest action.",situation:"Something may be stuck because an issue has not yet been named or faced clearly.",guidance:"Be clear and direct, but not harsh. The aim is resolution, not punishment.",questions:["What needs to be named clearly?","Where is avoidance creating blockage?","What firm but fair action is needed?"],expanded:"Biting Through reflects the need to deal with what obstructs clarity. It favours honest action that restores order."},
+22:{essence:"Outer beauty is strongest when it expresses inner sincerity.",situation:"Appearances, presentation, or tone may matter, but they should not replace what is true.",guidance:"Let simplicity and sincerity guide expression. Beauty works best when it serves meaning.",questions:["What is appearance covering or revealing?","Where would simplicity help?","How can expression become more sincere?"],expanded:"Grace reflects beauty, refinement, and expression. It reminds us that elegance is strongest when rooted in truth."},
+23:{essence:"Something unstable may be falling away; preserve what is essential.",situation:"Something may be weakening, ending, or losing its old support.",guidance:"Do not cling to what is already falling apart. Protect what is essential and let the unstable pass.",questions:["What is no longer holding?","What must be preserved?","Where would letting go be wiser than resistance?"],expanded:"Splitting Apart reflects the falling away of what cannot remain. It asks for restraint, care, and protection of what still matters."},
+24:{essence:"Renewal begins through a quiet return to what is true and essential.",situation:"A return to something simple, true, or nourishing may be quietly possible.",guidance:"Begin again gently. Small sincere returns can restore direction.",questions:["What am I being invited to return to?","What feels simple and true?","What small renewal is possible now?"],expanded:"Return reflects renewal after distance or difficulty. It suggests that meaningful change often begins quietly."},
+25:{essence:"Natural sincerity protects action from manipulation or overthinking.",situation:"The matter may call for a simpler, more honest response than the mind is trying to create.",guidance:"Act from sincerity rather than strategy. Let the cleanest intention guide you.",questions:["What feels naturally true here?","Where am I overcomplicating things?","What would be sincere and unforced?"],expanded:"Innocence reflects naturalness, sincerity, and unforced action. It asks for honesty without manipulation."},
+26:{essence:"Strong energy is best held, refined, and directed with wisdom.",situation:"There may be strength available, but it needs restraint before it is used.",guidance:"Hold steady. Stored strength becomes useful when timing and direction are right.",questions:["What strength needs restraint?","Where is timing important?","How can I use power wisely?"],expanded:"Great Taming reflects strength held in reserve. It suggests mastery through patience, discipline, and thoughtful direction."},
+27:{essence:"Consider what you feed in body, mind, speech, and relationships.",situation:"Attention may be needed around what is being taken in, repeated, or encouraged.",guidance:"Choose nourishment carefully. What you feed will shape what grows.",questions:["What am I feeding with attention?","What nourishes me now?","What should I stop encouraging?"],expanded:"Nourishment reflects what sustains life and what quietly shapes us. It asks us to notice what we consume, speak, and support."},
+28:{essence:"Pressure may be high; strength is needed, but balance must be restored.",situation:"Something may feel under strain, as though too much weight is being carried.",guidance:"Acknowledge the pressure honestly. Strength is needed, but so is support and balance.",questions:["Where is the pressure greatest?","What support is needed?","What would restore balance?"],expanded:"Great Exceeding reflects a time of unusual pressure. It asks for courage, but also for adjustment before strain becomes too great."},
+29:{essence:"Depth and uncertainty ask for courage, honesty, and careful movement.",situation:"This may feel uncertain, emotionally deep, or difficult to navigate.",guidance:"Move carefully and stay present. Courage here means not abandoning yourself in uncertainty.",questions:["What uncertainty needs to be faced?","Where can I move carefully?","What helps me stay steady?"],expanded:"The Abyss reflects depth, fear, and repeated challenge. It encourages careful movement, emotional honesty, and inner steadiness."},
+30:{essence:"Clarity grows when awareness is sustained without attachment.",situation:"Something may be asking to be seen more clearly, without rushing to judgement.",guidance:"Stay with what is visible. Clarity deepens when attention is steady and not forced.",questions:["What is becoming clearer?","Where am I attached to one view?","How can I keep attention steady?"],expanded:"The Clinging reflects light, awareness, and clarity. It asks us to stay close to what illuminates without becoming rigid."},
+31:{essence:"Gentle attraction and openness may create meaningful connection.",situation:"Feelings, influence, or attraction may be quietly affecting the situation.",guidance:"Stay open, but do not force response. Genuine influence moves gently.",questions:["What am I being drawn towards?","Where is openness needed?","Is this influence sincere and balanced?"],expanded:"Influence reflects emotional openness and the subtle power of being moved. It favours gentleness over pressure."},
+32:{essence:"Lasting progress depends on steadiness, rhythm, and committed direction.",situation:"The matter may depend less on intensity and more on consistency over time.",guidance:"Return to what can be sustained. Lasting change grows through rhythm and commitment.",questions:["What needs consistency?","What rhythm supports this situation?","Where have I lost steadiness?"],expanded:"Duration reflects constancy and the strength of what endures. It asks for a path that can be lived, not just imagined."},
+33:{essence:"Stepping back may preserve strength and create wiser timing.",situation:"A little distance may help protect your energy and restore perspective.",guidance:"Step back without resentment. Withdrawal can be wise when it protects what matters.",questions:["Where do I need distance?","What strength should be preserved?","What timing would be wiser?"],expanded:"Retreat reflects the wisdom of stepping back. It is not defeat, but a way of protecting clarity and strength."},
+34:{essence:"Power must be guided by responsibility, restraint, and clear intention.",situation:"Strong feeling, momentum, or willpower may be present and needs careful direction.",guidance:"Use strength responsibly. Power becomes helpful when it is restrained and clear.",questions:["Where is power present?","What would responsible strength look like?","Where might restraint be needed?"],expanded:"Great Power reflects force, confidence, and momentum. It asks that strength be joined with responsibility."},
+35:{essence:"Clarity and recognition may grow through steady, visible development.",situation:"Progress may be possible, especially through steady effort and clear intention.",guidance:"Move forward without rushing. Let progress be visible through consistency.",questions:["Where is progress possible?","What is becoming clearer?","How can I move forward steadily?"],expanded:"Progress reflects growth, visibility, and development. It encourages steady movement into clearer light."},
+36:{essence:"Protect inner clarity when outer circumstances are difficult or unclear.",situation:"The outer situation may not fully support openness, so inner clarity may need protection.",guidance:"Do not expose everything too soon. Keep your light safe until conditions are clearer.",questions:["What needs protecting?","Where should I be more discreet?","How can I stay clear inwardly?"],expanded:"Darkening of the Light reflects clarity under difficult conditions. It asks for quiet strength and careful protection of what is true."},
+37:{essence:"Relationships and roles need care, warmth, and clear responsibility.",situation:"The issue may involve closeness, responsibility, roles, or the way people relate at home or within a group.",guidance:"Bring warmth and clarity together. Care works best when responsibilities are understood.",questions:["What role am I playing here?","Where is warmth needed?","What responsibility needs clarity?"],expanded:"The Family reflects relationship, belonging, and the ordering of shared life. It asks for care, respect, and clear roles."},
+38:{essence:"Difference can reveal insight when approached without defensiveness.",situation:"Different views, needs, or feelings may be creating distance or contrast.",guidance:"Do not rush to erase difference. Understanding may come through seeing another side.",questions:["What difference is asking to be understood?","Where am I becoming defensive?","What can contrast teach me?"],expanded:"Opposition reflects difference and separation. It suggests that disagreement can become insight when approached with openness."},
+39:{essence:"Difficulty may require patience, support, and a change in approach.",situation:"Progress may feel blocked, and the direct route may not be the wisest one.",guidance:"Look for support and consider another way forward. Obstacles can change the route without ending the journey.",questions:["What obstacle is present?","Where could support help?","What route might be wiser now?"],expanded:"Obstruction reflects difficulty that cannot be solved by force alone. It asks for patience, help, and a change of approach."},
+40:{essence:"Tension may begin to loosen; forgiveness and movement become possible.",situation:"Something tight, stressful, or unresolved may be ready to ease.",guidance:"Allow release where it is possible. Do not keep carrying what is ready to loosen.",questions:["What is beginning to loosen?","What can I stop carrying?","Where would forgiveness or relief help?"],expanded:"Release reflects the easing of tension after difficulty. It encourages movement, forgiveness, and relief."},
+41:{essence:"Letting go may restore proportion and inner simplicity.",situation:"The situation may call for less, not more. Something can be simplified.",guidance:"Reduce what is unnecessary. Simplicity may restore balance.",questions:["What can be reduced?","Where has too much been added?","What simple truth remains?"],expanded:"Decrease reflects simplification, offering, and restored proportion. It suggests that letting go can be strengthening."},
+42:{essence:"Growth is supported by generosity, responsiveness, and timely action.",situation:"There may be an opportunity for growth, help, or renewal if it is met at the right time.",guidance:"Respond generously and practically. Growth is strongest when it benefits more than the self.",questions:["What is increasing?","Where can I respond generously?","What opportunity needs timely action?"],expanded:"Increase reflects growth, help, and expanding possibility. It asks that benefit be shared and used well."},
+43:{essence:"Truth may need to be expressed clearly without aggression.",situation:"Something important may need to be said or acknowledged clearly.",guidance:"Speak truthfully, but do not turn clarity into attack. Breakthrough needs restraint.",questions:["What truth needs expression?","How can I be clear without aggression?","What must be acknowledged now?"],expanded:"Breakthrough reflects the need for clear truth. It asks for courage joined with self-control."},
+44:{essence:"A powerful influence appears; discernment is essential.",situation:"Something or someone may have a strong pull, and careful discernment is needed.",guidance:"Notice the influence without being swept away by it. Boundaries may matter.",questions:["What influence is entering the situation?","Where might I need discernment?","What boundary would protect clarity?"],expanded:"Coming to Meet reflects a strong encounter or influence. It asks for awareness, boundaries, and wise response."},
+45:{essence:"Shared focus and sincere community can strengthen purpose.",situation:"Gathering support, people, or attention around a shared concern may be important.",guidance:"Bring things together with sincerity. Shared focus can strengthen what matters.",questions:["What needs gathering?","Who belongs in this conversation?","What shared purpose is present?"],expanded:"Gathering Together reflects community, focus, and shared intention. It reminds us that some matters need collective support."},
+46:{essence:"Gradual effort, humility, and persistence support steady growth.",situation:"Growth may be slow but possible through steady effort.",guidance:"Keep climbing gently. Small honest effort can carry you further than impatience.",questions:["What is growing slowly?","Where is persistence needed?","What small upward step is possible?"],expanded:"Pushing Upward reflects gradual ascent. It favours patience, humility, and steady progress."},
+47:{essence:"Constraint may test inner truth; avoid losing heart.",situation:"The situation may feel restricted, tiring, or emotionally difficult.",guidance:"Do not measure your worth by the restriction. Keep hold of what remains true within you.",questions:["Where do I feel constrained?","What inner truth remains?","What helps me not lose heart?"],expanded:"Oppression reflects pressure, limitation, and weariness. It asks for dignity and inner steadiness when outer freedom feels reduced."},
+48:{essence:"A deeper source of nourishment or wisdom may need to be drawn upon.",situation:"The answer may lie in returning to a deeper source of support, wisdom, or care.",guidance:"Draw from what truly nourishes. Do not neglect the source that sustains you.",questions:["What is my deeper source here?","What nourishment has been neglected?","What wisdom can I return to?"],expanded:"The Well reflects a source that continues to nourish when it is tended. It points to depth, renewal, and shared sustenance."},
+49:{essence:"Transformation becomes possible when timing and inner truth align.",situation:"A real change may be needed, but timing and sincerity are important.",guidance:"Do not change merely to escape discomfort. Change when the truth of the matter is clear.",questions:["What is ready to change?","Is the timing right?","What truth supports this transformation?"],expanded:"Revolution reflects deep change and renewal. It asks that transformation be grounded in truth rather than impulse."},
+50:{essence:"Raw experience can be transformed into wisdom, nourishment, and culture.",situation:"Something difficult or unfinished may be capable of becoming useful, nourishing, or meaningful.",guidance:"Let experience be refined. What feels raw now may become wisdom with care.",questions:["What is being transformed?","What raw material is present?","How can this become nourishing?"],expanded:"The Cauldron reflects transformation through careful tending. It suggests that experience can be turned into nourishment and wisdom."},
+51:{essence:"Shock awakens awareness; steadiness returns through presence.",situation:"Something may have disturbed, surprised, or awakened you.",guidance:"Stay present after the shock. What matters now is how you steady yourself.",questions:["What has been awakened?","How can I steady myself?","What did the disturbance reveal?"],expanded:"The Arousing reflects shock, movement, and awakening. It asks for presence after disturbance."},
+52:{essence:"Stillness, boundaries, and inner quiet may now be essential.",situation:"The situation may need stillness, restraint, or a pause before further movement.",guidance:"Be still enough to know what is yours to carry and what is not.",questions:["Where is stillness needed?","What boundary would help?","What becomes clear when I stop?"],expanded:"Keeping Still reflects pause, boundary, and inner quiet. It encourages calm attention before action."},
+53:{essence:"Slow organic progress is favoured over haste.",situation:"This matter may need time to develop naturally.",guidance:"Let progress be gradual. What grows slowly may become more stable.",questions:["What needs time?","Where am I rushing growth?","What steady step supports development?"],expanded:"Development reflects slow, organic growth. It favours patience, care, and trust in gradual unfolding."},
+54:{essence:"Adaptation is needed where power or position feels unequal.",situation:"The situation may involve unequal roles, limited choices, or the need to adapt carefully.",guidance:"Protect your dignity while recognising the limits of the situation.",questions:["Where do I feel limited?","What dignity can I preserve?","How can I adapt without losing myself?"],expanded:"The Marrying Maiden reflects a delicate or unequal position. It asks for realism, dignity, and careful conduct."},
+55:{essence:"A full moment requires clarity, generosity, and wise use of energy.",situation:"There may be much happening at once, bringing both opportunity and pressure.",guidance:"Use fullness wisely. Do not let abundance become overwhelm.",questions:["What is full or intense right now?","Where is clarity needed?","How can I use this energy wisely?"],expanded:"Abundance reflects fullness, visibility, and intensity. It asks for clarity while the moment is bright."},
+56:{essence:"When not fully settled, move with humility and awareness.",situation:"You may feel between places, unsettled, or not fully at home in the situation.",guidance:"Move lightly and respectfully. When things are temporary, humility protects you.",questions:["Where do I feel unsettled?","What would humble movement look like?","How can I stay grounded while passing through?"],expanded:"The Wanderer reflects unfamiliar ground and temporary conditions. It asks for humility, awareness, and careful conduct."},
+57:{essence:"Subtle influence works through patience, consistency, and quiet penetration.",situation:"Change may need to happen gently rather than through direct force.",guidance:"Be consistent and patient. Quiet influence can reach places pressure cannot.",questions:["Where is gentleness needed?","What influence is slowly working?","How can I remain consistent?"],expanded:"The Gentle reflects quiet influence and gradual penetration. It favours patience, subtlety, and steady presence."},
+58:{essence:"Open communication and shared joy can restore connection.",situation:"Communication, openness, or shared feeling may help the situation soften.",guidance:"Speak openly, but keep the exchange sincere. Joy is strongest when it is not forced.",questions:["Where is honest communication needed?","What might restore ease?","How can openness remain sincere?"],expanded:"The Joyous reflects openness, expression, and shared pleasure. It reminds us that connection can be restored through sincere communication."},
+59:{essence:"Dissolving rigidity may allow feeling, trust, or understanding to flow again.",situation:"Something rigid, stuck, or divided may need to soften.",guidance:"Let what is frozen begin to move. Softening may restore connection.",questions:["What has become rigid?","Where could trust begin to flow again?","What needs softening?"],expanded:"Dispersion reflects the loosening of rigidity and the return of flow. It can bring reconnection after separation."},
+60:{essence:"Healthy boundaries create form, rhythm, and sustainable freedom.",situation:"The matter may need clearer limits, rhythm, or structure.",guidance:"Set limits that support life rather than restrict it unnecessarily.",questions:["What boundary is needed?","Where would structure help?","How can limits create freedom?"],expanded:"Limitation reflects boundaries, rhythm, and proportion. It suggests that freedom often needs form to become sustainable."},
+61:{essence:"Sincerity and emotional honesty bring alignment and trust.",situation:"Honesty with yourself or others may matter more than appearances right now.",guidance:"Listen for what is genuinely true. Sincerity may restore trust where explanation cannot.",questions:["What truth needs acknowledging?","Where would sincerity help?","How can my words and actions align?"],expanded:"Inner Truth reflects sincerity and emotional honesty. It points to the quiet strength that appears when inner and outer life are aligned."},
+62:{essence:"Careful attention to small details is wiser than grand gestures.",situation:"The situation may call for small, careful steps rather than large moves.",guidance:"Attend to the small things. Humility and precision may be more useful than ambition.",questions:["What small detail matters?","Where should I be more careful?","What modest step is enough?"],expanded:"Small Exceeding reflects careful attention, modest action, and restraint. It favours small movements made well."},
+63:{essence:"A completed phase still requires vigilance and balance.",situation:"Something may seem settled, but it still needs care to remain balanced.",guidance:"Do not become careless after progress. Completion needs maintenance.",questions:["What needs continued care?","Where might complacency enter?","How can balance be protected?"],expanded:"After Completion reflects a phase that has reached order but still needs attention. It reminds us that balance must be maintained."},
+64:{essence:"The transition is not finished; careful awareness is needed before closure.",situation:"Something is not yet complete, even if the end feels near.",guidance:"Move carefully through the unfinished part. Do not rush the final step.",questions:["What remains unfinished?","Where is care still needed?","What would help complete this wisely?"],expanded:"Before Completion reflects the final crossing before things settle. It asks for care, patience, and alertness."}
+};
+
+function getHexagram(number){
+ const base = HEX_INFO[number];
+ const full = FULL_ENTRIES[number] || {};
+ return {
+  number,
+  name: base[0],
+  image: base[1],
+  essence: full.essence || base[2],
+  situation: full.situation || "This may help bring attention to what is quietly shaping the situation.",
+  guidance: full.guidance || "Pause, observe, and allow clarity to emerge before reacting too quickly.",
+  questions: full.questions || ["What is this situation asking me to notice?","Where is change already beginning?","What response would feel most aligned and steady?"],
+  expanded: full.expanded || base[2] + " Consider this hexagram as a symbolic mirror rather than a fixed prediction. Its purpose is to support reflection, timing, and wiser response.",
+  changing: full.changing || {}
+ };
+}
+
+function toggleLearn(){document.getElementById('learnPanel').classList.toggle('hidden');}
+function toggleExpanded(){document.getElementById('expanded').classList.toggle('hidden');}
+
+function startReading(isGuided){
+ guided=isGuided;
+ document.getElementById('welcome').classList.add('hidden');
+ document.getElementById('learnPanel').classList.add('hidden');
+ document.getElementById('questionPanel').classList.remove('hidden');
+ document.getElementById('castingMessage').textContent = guided ? 'Take a quiet breath and allow the lines to emerge slowly...' : 'Allow the lines to emerge gradually...';
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function newReading(){
+ if(isCasting) return;
+ document.getElementById('question').value='';
+ document.getElementById('journal').value='';
+ document.getElementById('castingHexagram').innerHTML='';
+ document.getElementById('resultHexagram').innerHTML='';
+ document.getElementById('changingLines').innerHTML='';
+ document.getElementById('reflectionQuestions').innerHTML='';
+ document.getElementById('expanded').classList.add('hidden');
+ document.getElementById('castingPanel').classList.add('hidden');
+ document.getElementById('resultPanel').classList.add('hidden');
+ document.getElementById('learnPanel').classList.add('hidden');
+ document.getElementById('welcome').classList.remove('hidden');
+ document.getElementById('questionPanel').classList.add('hidden');
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function weightedLine(){
+ const pool=[6,7,7,7,7,7,8,8,8,8,8,8,8,9,9,9];
+ return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function createLine(v,delay=0){
+ const line=document.createElement('div');
+ line.classList.add('line');
+ line.style.animationDelay=delay+'s';
+ if(v===7||v===9){line.classList.add('yang');}
+ else{line.classList.add('yin');line.innerHTML='<span></span><span></span>';}
+ if(v===6||v===9){
+  const m=document.createElement('div');
+  m.classList.add('marker');
+  m.textContent=v===9?'○':'✕';
+  line.appendChild(m);
+ }
+ return line;
+}
+
+function toBinary(lines){return lines.map(v=>(v===7||v===9)?'1':'0').join('');}
+function transformed(lines){return lines.map(v=>v===6?7:v===9?8:v);}
+
+async function castHexagram(){
+ if(isCasting) return;
+ isCasting=true;
+ const castBtn=document.getElementById('castBtn');
+ castBtn.disabled=true;
+ document.getElementById('castingPanel').classList.remove('hidden');
+ document.getElementById('resultPanel').classList.add('hidden');
+ const display=document.getElementById('castingHexagram');
+ display.innerHTML='';
+ const lines=[];
+ const guidedMessages=[
+  'First line: the foundation of the situation is emerging...',
+  'Second line: notice how the matter relates to others...',
+  'Third line: the inner pressure of the situation is becoming visible...',
+  'Fourth line: the reading approaches a threshold of choice or support...',
+  'Fifth line: the central guidance is taking shape...',
+  'Sixth line: the pattern reaches its upper limit and completes...'
+ ];
+ for(let i=0;i<6;i++){
+  if(guided) document.getElementById('castingMessage').textContent=guidedMessages[i];
+  const value=weightedLine();
+  lines.push(value);
+  display.prepend(createLine(value,i*0.08));
+  await new Promise(r=>setTimeout(r,guided?950:500));
+ }
+ document.getElementById('castingMessage').textContent = 'The reading is ready.';
+ renderReading(lines);
+ castBtn.disabled=false;
+ isCasting=false;
+}
+
+
+const LINE_STAGES = {
+  1: {
+    name: "emergence",
+    yin: "At the root of the matter, the changing energy is still forming. Something receptive, cautious, or half-spoken may need protection before it is asked to carry too much.",
+    yang: "At the root of the matter, strong energy is beginning to move. The task is to act without overreaching, and to let the first step be clean, modest, and sincere."
+  },
+  2: {
+    name: "relationship",
+    yin: "The second line points to how the situation meets others. A softer response, clearer listening, or less defensive posture may change the emotional atmosphere.",
+    yang: "The second line points to how the situation meets others. Directness can help, provided it is warm, proportionate, and not used to push past another person’s readiness."
+  },
+  3: {
+    name: "pressure",
+    yin: "The third line often carries tension. Here the change asks for honesty about anxiety, mixed motives, or the temptation to react before the pattern is fully understood.",
+    yang: "The third line often carries tension. Strong feeling may be pressing for action, but the wiser movement is to pause, steady yourself, and act from clarity rather than strain."
+  },
+  4: {
+    name: "threshold",
+    yin: "The fourth line stands near a turning point. A more receptive stance may allow support, insight, or timing to appear from beyond your usual way of seeing.",
+    yang: "The fourth line stands near a turning point. A decisive movement may be needed, but it should serve the deeper pattern rather than personal urgency."
+  },
+  5: {
+    name: "maturity",
+    yin: "The fifth line brings the issue close to conscious leadership. Influence now comes through steadiness, kindness, and the ability to hold complexity without forcing it.",
+    yang: "The fifth line brings the issue close to conscious leadership. Strength is available, but it becomes trustworthy only when guided by integrity and emotional balance."
+  },
+  6: {
+    name: "completion",
+    yin: "The top line shows a pattern reaching its limit. Something may need to be released gently so the lesson can complete without becoming resignation or withdrawal.",
+    yang: "The top line shows a pattern reaching its limit. The danger is excess; the opportunity is to recognise when enough has been done and allow the next phase to begin."
+  }
+};
+
+const HEX_LINE_THEMES = {
+  1:["creative impulse","disciplined initiative","pressure to prove strength","responsible direction","clear leadership","release of over-control"],
+  2:["quiet receiving","patient support","uncertain yielding","trusting the field","generous steadiness","letting form return to simplicity"],
+  3:["new difficulty","early confusion","growing pains","seeking help","organising chaos","not forcing premature completion"],
+  4:["beginner’s humility","asking sincerely","learning through mistakes","respecting guidance","clarity through teachability","ending naïve certainty"],
+  5:["waiting with awareness","nourishing patience","anxious delay","trusting timing","readiness without pressure","moving beyond suspended expectation"],
+  6:["first signs of tension","careful speech","escalating conflict","seeking mediation","principled restraint","ending the need to win"],
+  7:["gathering discipline","shared responsibility","testing order","wise command","coherent purpose","laying down struggle"],
+  8:["forming trust","choosing allegiance","testing belonging","deepening loyalty","sincere union","releasing dependency"],
+  9:["small restraint","gentle refinement","frustrated control","subtle influence","quiet effectiveness","letting small gains settle"],
+  10:["careful first step","respectful contact","risk and sensitivity","right conduct","grace under pressure","not tempting danger further"],
+  11:["opening harmony","easy exchange","maintaining balance","welcoming growth","generous peace","not clinging to a fortunate phase"],
+  12:["blocked movement","withdrawing from falseness","testing discouragement","preserving integrity","quiet reversal","ending stagnation wisely"],
+  13:["seeking fellowship","clear common ground","friction in groups","widening perspective","shared purpose","leaving narrow belonging"],
+  14:["inner abundance","responsible possession","avoiding pride","wise stewardship","radiant generosity","not becoming owned by success"],
+  15:["humble foundation","modest service","quiet correction","balanced influence","unassuming strength","completion without display"],
+  16:["stirring enthusiasm","shared rhythm","excitement needing grounding","inspiring others","directed energy","letting excitement fade cleanly"],
+  17:["willingness to follow","responsive listening","losing oneself in others","choosing influence wisely","trustworthy adaptation","ending blind compliance"],
+  18:["noticing decay","repairing inherited patterns","difficulty facing old damage","entering the work","restoration through courage","not reopening what is already healed"],
+  19:["approach begins","warm engagement","expectation grows","welcoming responsibility","generous nearness","remembering cycles change"],
+  20:["stepping back","observing motives","seeing through appearances","contemplative distance","being seen clearly","returning from observation to life"],
+  21:["naming the blockage","firm speech","danger of harshness","clear consequence","just resolution","not biting beyond what is needed"],
+  22:["simple beauty","refined expression","style versus substance","beauty serving truth","graceful presence","letting appearance fall away"],
+  23:["erosion at the base","protecting essentials","instability exposed","accepting loss","preserving what remains","not resisting necessary falling away"],
+  24:["first return","quiet renewal","restlessness before steadiness","re-entering the path","sincere restoration","not rushing the new cycle"],
+  25:["natural sincerity","unforced action","innocence tested","alignment with truth","clear-hearted movement","releasing naïve expectation"],
+  26:["contained power","disciplined restraint","stored energy under pressure","learning mastery","mature direction","using strength without excess"],
+  27:["what is being fed","careful intake","speech and appetite","choosing nourishment","sustaining others wisely","ending what no longer nourishes"],
+  28:["weight at the base","bearing pressure","strain near breaking","finding support","courage under load","letting the structure change"],
+  29:["entering uncertainty","staying with fear","repeated emotional depth","finding a channel","calm in danger","emerging without hardening"],
+  30:["first illumination","shared clarity","attachment to brightness","clarity with humility","sustained awareness","letting insight become wisdom"],
+  31:["subtle attraction","mutual responsiveness","emotional pull","open-hearted influence","deep connection","not manipulating feeling"],
+  32:["beginning commitment","steady rhythm","restlessness within duration","renewing the vow","reliable constancy","knowing when a pattern is complete"],
+  33:["first withdrawal","strategic distance","difficulty retreating","protecting dignity","wise reserve","not vanishing from fear"],
+  34:["rising force","power meeting others","strength tested","restraint in power","responsible influence","ending force before it becomes excess"],
+  35:["first progress","recognition grows","ambition tested","clear advancement","generous visibility","not clinging to status"],
+  36:["protecting light","hidden clarity","wounded brightness","surviving difficulty","quiet truth","allowing light to return"],
+  37:["roles and roots","family responsibility","tension in closeness","ordering the home","warm authority","outgrowing old roles"],
+  38:["difference appears","maintaining connection","opposition sharpens","seeing from another side","productive contrast","not living through opposition"],
+  39:["obstacle recognised","asking for help","frustration in delay","changing route","support through difficulty","moving once the obstruction teaches"],
+  40:["first loosening","forgiveness begins","release under pressure","untangling knots","liberating movement","not recreating the old tension"],
+  41:["simple decrease","giving up excess","resentment about loss","sincere offering","clarity through reduction","not emptying what is vital"],
+  42:["first increase","shared benefit","growth needing direction","responding to opportunity","generous expansion","letting increase circulate"],
+  43:["truth rising","clear declaration","danger of aggression","breakthrough with restraint","honest leadership","not turning truth into attack"],
+  44:["unexpected encounter","discerning influence","temptation or fascination","setting boundaries","meeting power wisely","withdrawing from what overwhelms"],
+  45:["gathering begins","shared focus","crowd pressure","organising belonging","communal strength","leaving the gathering rightly"],
+  46:["small ascent","patient effort","discouragement in growth","steady climbing","trusted development","not pushing beyond season"],
+  47:["constraint felt","inner truth under pressure","weariness and silence","finding dignity","strength in limitation","not identifying with oppression"],
+  48:["return to source","drawing nourishment","neglect of the well","renewing access","shared wisdom","not exhausting the source"],
+  49:["need for change","preparing transformation","old skin resisting","right timing","renewal with conviction","not changing for its own sake"],
+  50:["raw material","inner cooking","unstable transformation","refining the vessel","nourishing wisdom","offering what has matured"],
+  51:["first shock","steadying response","fear and movement","learning from disturbance","awakened presence","aftershock and integration"],
+  52:["first stillness","boundaries forming","restless stopping","quiet centre","deep composure","not freezing into isolation"],
+  53:["gradual beginning","patient courtship","slow progress tested","organic development","mature arrival","not rushing completion"],
+  54:["unequal position","adaptive dignity","emotional compromise","finding right conduct","accepting limits wisely","leaving false dependency"],
+  55:["fullness begins","bright abundance","overwhelm in fullness","clarity at the centre","generous peak","accepting the passing of fullness"],
+  56:["entering unfamiliar ground","humble conduct","loneliness or haste","finding temporary shelter","dignity while unsettled","moving on without bitterness"],
+  57:["gentle entry","patient influence","indecision or drift","penetrating insight","quiet effectiveness","not dissolving into passivity"],
+  58:["opening joy","shared expression","pleasure tested","sincere communication","deep gladness","not chasing approval"],
+  59:["rigidity softens","trust disperses fear","scattered feeling","reuniting what was divided","flow restored","not dissolving necessary boundaries"],
+  60:["first boundary","measured rhythm","resenting limits","useful structure","freedom through form","not becoming rigid"],
+  61:["quiet truth","trustful speech","vulnerability tested","heart understanding","sincere influence","letting truth breathe"],
+  62:["small care","modest attention","overdoing the small","careful crossing","humble success","not shrinking from necessary action"],
+  63:["completion begins","maintaining order","complacency tested","guarding balance","care after success","allowing a finished phase to close"],
+  64:["before completion","careful preparation","uncertain crossing","testing readiness","almost there","not rushing the final step"]
+};
+
+function changingLineMeaning(hexagram, lineNumber, value){
+ const specific = hexagram.changing && hexagram.changing[lineNumber];
+ if(specific) return specific;
+ const stage = LINE_STAGES[lineNumber];
+ const quality = value === 6 ? stage.yin : stage.yang;
+ const themes = HEX_LINE_THEMES[hexagram.number] || [];
+ const theme = themes[lineNumber-1] || hexagram.name.toLowerCase();
+ return `This is a line of ${stage.name}, coloured by ${theme}. ${quality}`;
+}
+
+function relatingContinuity(primary, relating, changingCount){
+ if(primary.number === relating.number){
+  return `There are no changing lines, so the reading remains centred on Hexagram ${primary.number} — ${primary.name}. Rather than pointing toward a different symbolic pattern, this suggests staying with the present atmosphere: ${primary.essence}`;
+ }
+ const pace = changingCount === 1 ? "a focused point of change" : changingCount <= 3 ? "several connected movements of change" : "a strong current of transformation";
+ return `Relating Hexagram: ${relating.number} — ${relating.name}. Through ${pace}, the situation appears to be moving from the atmosphere of ${primary.name.toLowerCase()} toward ${relating.name.toLowerCase()}. This does not replace the primary reading; it shows the direction in which the present pattern may be trying to reorganise itself. ${relating.essence}`;
+}
+
+function renderReading(lines){
+ const primaryKey=toBinary(lines);
+ const transformedKey=toBinary(transformed(lines));
+ const primaryNum=KING_WEN[primaryKey] || 1;
+ const relatingNum=KING_WEN[transformedKey] || primaryNum;
+ const primary=getHexagram(primaryNum);
+ const relating=getHexagram(relatingNum);
+ document.getElementById('resultPanel').classList.remove('hidden');
+ document.getElementById('hexTitle').textContent=`Hexagram ${primary.number} — ${primary.name}`;
+ document.getElementById('essence').textContent=primary.essence;
+ document.getElementById('situation').textContent=primary.situation;
+ document.getElementById('guidance').textContent=primary.guidance;
+ document.getElementById('expandedText').textContent=`${primary.image}. ${primary.expanded}`;
+ const changingCount = lines.filter(v=>v===6||v===9).length;
+ document.getElementById('relating').textContent=relatingContinuity(primary, relating, changingCount);
+ const q=document.getElementById('reflectionQuestions');
+ q.innerHTML='';
+ primary.questions.forEach(item=>{const li=document.createElement('li');li.textContent=item;q.appendChild(li);});
+ const resultHex=document.getElementById('resultHexagram');
+ resultHex.innerHTML='';
+ lines.slice().reverse().forEach((v,i)=>resultHex.appendChild(createLine(v,i*0.05)));
+ const changingDiv=document.getElementById('changingLines');
+ changingDiv.innerHTML='';
+ let hasChanging=false;
+ lines.forEach((v,index)=>{
+  if(v===6||v===9){
+   hasChanging=true;
+   const p=document.createElement('p');
+   const text=changingLineMeaning(primary, index+1, v);
+   p.innerHTML=`<strong>Line ${index+1}:</strong> ${text}`;
+   changingDiv.appendChild(p);
+  }
+ });
+ document.getElementById('changingLinesSection').classList.toggle('hidden',!hasChanging);
+ window.scrollTo({top:document.getElementById('resultPanel').offsetTop-10,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
